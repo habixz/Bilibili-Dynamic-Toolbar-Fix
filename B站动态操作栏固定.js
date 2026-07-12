@@ -5,7 +5,7 @@
 // @description  固定 B 站动态操作栏，并增强评论关闭前滚动与“回到动态”按钮交互
 // @author       habixz
 // @match        https://t.bilibili.com/*
-// @match        https://space.bilibili.com/*/dynamic*
+// @match        https://space.bilibili.com/*
 // @match        https://www.bilibili.com/v/topic/detail/*
 // @grant        none
 // @run-at       document-start
