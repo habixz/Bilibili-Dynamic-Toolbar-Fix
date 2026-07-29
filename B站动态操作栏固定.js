@@ -93,6 +93,7 @@
                 --bdsf-surface: rgba(255, 255, 255, 0.96);
                 --bdsf-text: #18191c;
                 --bdsf-border: rgba(24, 25, 28, 0.10);
+                --bdsf-accent: var(--brand_blue, #00aeec);
                 --bdsf-sticky-top: ${DEFAULT_STICKY_TOP}px;
             }
             @media (prefers-color-scheme: dark) {
@@ -116,6 +117,11 @@
             .bdsf-sticky-footer .bili-dyn-action__icon,
             .bdsf-sticky-footer .bili-dyn-action__text {
                 color: inherit !important;
+            }
+            .bdsf-sticky-footer .bili-dyn-action.comment.bdsf-comment-active,
+            .bdsf-sticky-footer .bili-dyn-action.comment.bdsf-comment-active .bili-dyn-action__icon,
+            .bdsf-sticky-footer .bili-dyn-action.comment.bdsf-comment-active .bili-dyn-action__text {
+                color: var(--bdsf-accent) !important;
             }
             .bdsf-scroll-action-btn {
                 position: absolute;
@@ -222,6 +228,13 @@
      */
     function collectObservedCards(records) {
         for (const record of records) {
+            const ownerCard = record.target instanceof Element
+                ? record.target.closest(CARD_SELECTOR)
+                : null;
+            if (ownerCard instanceof HTMLElement && isTopLevelCardElement(ownerCard)) {
+                state.pendingObservedCards.add(ownerCard);
+            }
+
             for (const node of record.addedNodes) {
                 collectCardsFromObservedNode(node);
             }
@@ -635,6 +648,24 @@
     }
 
     /**
+     * 同步评论按钮的高亮状态。
+     * 当评论区已展开时，为按钮补一个脚本自管的激活类，
+     * 这样即便操作栏被重新排版成 sticky，也能稳定保持高亮反馈。
+     * @param {HTMLElement} footer
+     * @param {HTMLElement} card
+     */
+    function updateCommentButtonState(footer, card) {
+        const commentButton = getCardCommentButton(footer);
+        if (!(commentButton instanceof HTMLElement)) {
+            return;
+        }
+
+        const isExpanded = hasExpandedPanel(card);
+        commentButton.classList.toggle('bdsf-comment-active', isExpanded);
+        commentButton.setAttribute('aria-pressed', String(isExpanded));
+    }
+
+    /**
      * 在当前动态卡片内部查找“属于它自己”的后代节点。
      * 这里不要求节点必须是直属子级，但要求该节点向上最近的动态卡片就是当前 card，
      * 这样既能兼容 B 站真实 DOM 层级，又能避开转发卡片里的嵌套同类节点。
@@ -686,6 +717,11 @@
      * @param {HTMLElement} main
      */
     function updateScrollActionButtonState(button, card, main) {
+        const footer = getCardFooter(card);
+        if (footer instanceof HTMLElement) {
+            updateCommentButtonState(footer, card);
+        }
+
         if (!hasExpandedPanel(card)) {
             button.disabled = true;
             button.title = '评论区未打开，无法滚动';
